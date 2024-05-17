@@ -1,0 +1,8 @@
+server:
+  log_level: info
+  log_format: logfmt
+logs:
+  configs:
+  - name: default
+    clients:
+      - url: http://lokirelease.monitoring.svc.cluster.local:3100/loki/api/v1/push

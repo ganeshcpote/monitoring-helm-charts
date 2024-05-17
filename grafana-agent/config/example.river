@@ -1,0 +1,70 @@
+logging {
+	level  = "info"
+	format = "logfmt"
+}
+
+discovery.dns "bbhlokirelease_dns_lookup" {
+  names = ["lokirelease.monitoring.svc.cluster.local", "svc.cluster.local", "cluster.local"]
+  type = "A"
+  port = 3100
+}
+
+discovery.dns "bbhmimirrelease_dns_lookup" {
+  names = ["mimirrelease-nginx.monitoring.svc.cluster.local", "svc.cluster.local", "cluster.local"]
+  type = "A"
+  port = 80
+}
+
+
+discovery.kubernetes "pods" {
+	role = "pod"
+}
+
+discovery.kubernetes "nodes" {
+	role = "node"
+}
+
+discovery.kubernetes "services" {
+	role = "service"
+}
+
+discovery.kubernetes "endpoints" {
+	role = "endpoints"
+}
+
+discovery.kubernetes "endpointslices" {
+	role = "endpointslice"
+}
+
+discovery.kubernetes "ingresses" {
+	role = "ingress"
+}
+
+loki.write "default" {
+    endpoint {
+        url = "https://istio-alb/loki/api/v1/push"
+        tls_config{
+           insecure_skip_verify = true
+        }
+    }
+}
+
+loki.source.kubernetes "pods" {
+  targets    = discovery.kubernetes.pods.targets
+  forward_to = [loki.write.default.receiver]
+}
+
+prometheus.remote_write "mimir" {
+  endpoint {
+    url = "https://istio-alb/api/v1/push"
+    tls_config{
+	insecure_skip_verify = true
+     }
+  }  
+}
+
+prometheus.scrape "mimir" {
+  targets    = discovery.kubernetes.pods.targets
+  forward_to = [prometheus.remote_write.mimir.receiver]
+}
+
